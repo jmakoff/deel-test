@@ -25,7 +25,7 @@ Contracts group jobs within them.
 contractor get paid for jobs by clients under a certain contract.
 
 ## Getting Set Up
-
+   
 The exercise requires [Node.js](https://nodejs.org/en/) to be installed. We recommend using the LTS version.
 
 1. Start by creating a local repository for this folder.
@@ -96,3 +96,6 @@ It would be great for example if you'd write some unit test / simple frontend de
 When you have finished the assignment, zip your repo (make sure to include .git folder) and send us the zip.
 
 Thank you and good luck! 🙏
+
+
+TODO: I think would be good to write method typings via JSDoc 
