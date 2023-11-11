@@ -31,25 +31,31 @@ router.post("/:job_id/pay", getProfile, async (req, res) => {
     await sequelize.transaction(async () => {
       const { Job, Profile, Contract } = req.app.get("models");
       const { job_id } = req.params;
-      const [profile, job] = await Promise.all([
-        Profile.findOne({
-          attributes: ["balance", "id"],
-          where: {
-            id: req.profile.id,
+      const job = await Job.findOne({
+        include: [
+          {
+            model: Contract,
+            include: [
+              {
+                model: Profile,
+                as: "Contractor",
+              },
+              {
+                model: Profile,
+                as: "Client",
+              },
+            ],
           },
-        }),
-        Job.findOne({
-          include: [Contract],
-          attributes: ["price", "id", "paid"],
-          where: {
-            id: job_id,
-            "$Contract.ClientId$": req.profile.id,
-          },
-        }),
-      ]);
+        ],
+        attributes: ["price", "id", "paid"],
+        where: {
+          id: job_id,
+          "$Contract.ClientId$": req.profile.id,
+        },
+      });
 
-      if (!profile || !job) {
-        const errorMsg = `Cannot find contract or client info`;
+      if (!job) {
+        const errorMsg = `Cannot find job`;
         res.status(404);
         res.send(errorMsg);
         throw new Error(errorMsg);
@@ -62,25 +68,33 @@ router.post("/:job_id/pay", getProfile, async (req, res) => {
         throw new Error(errorMsg);
       }
 
-      if (profile.balance < job.price) {
+      const client = job.Contract.Client;
+      const contractor = job.Contract.Contractor;
+
+      if (client.balance < job.price) {
         const errorMsg = `You have not enough money on balance`;
         res.status(403);
         res.send(errorMsg);
         throw new Error(errorMsg);
       }
 
-      profile.balance = profile.balance - job.price;
+      client.balance -= job.price;
+      contractor.balance += job.price;
+
       job.set({
         paid: true,
         paymentDate: new Date(),
       });
-      await Promise.all([profile.save(), job.save()]);
 
-      return res.status(201).end;
+      await job.save();
+      await client.save();
+      await contractor.save();
+
+      return res.sendStatus(201);
     });
   } catch (error) {
     console.log(error);
-    res.status(500);
+    res.send(500);
   }
 });
 
